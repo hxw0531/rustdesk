@@ -40,39 +40,87 @@ fn get_custom_server_from_config_string(s: &str) -> ResultType<CustomServer> {
     }
 }
 
+/// Find config file path, checking multiple locations:
+/// 1. Current exe directory (for installed/extracted version)
+/// 2. Original portable exe directory (via RUSTDESK_APPNAME env var)
+fn find_config_file_path() -> Option<PathBuf> {
+    // First, check current exe directory
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let config_path = exe_dir.join(CONFIG_FILE_NAME);
+            log::debug!("Checking config at current exe dir: {:?}", config_path);
+            if config_path.exists() {
+                return Some(config_path);
+            }
+        }
+    }
+
+    // Second, check original portable exe directory (for self-extracting exe)
+    if let Ok(portable_exe) = std::env::var(crate::common::PORTABLE_APPNAME_RUNTIME_ENV_KEY) {
+        let portable_path = PathBuf::from(&portable_exe);
+        if let Some(portable_dir) = portable_path.parent() {
+            let config_path = portable_dir.join(CONFIG_FILE_NAME);
+            log::debug!(
+                "Checking config at portable exe dir: {:?}",
+                config_path
+            );
+            if config_path.exists() {
+                return Some(config_path);
+            }
+        }
+    }
+
+    None
+}
+
 /// Get custom server config from a JSON file in the same directory as the executable.
 /// The config file should be named "custom_server.json" with format:
 /// {"host": "", "key": "", "api": "", "relay": ""}
 pub fn get_custom_server_from_config_file() -> ResultType<CustomServer> {
-    let exe_path = std::env::current_exe()?;
-    let config_path: PathBuf = exe_path
-        .parent()
-        .ok_or_else(|| hbb_common::anyhow::anyhow!("Failed to get exe directory"))?
-        .join(CONFIG_FILE_NAME);
-    
-    if !config_path.exists() {
-        bail!("Config file not found: {:?}", config_path);
-    }
-    
-    let content = std::fs::read_to_string(&config_path)?;
+    let config_path = find_config_file_path()
+        .ok_or_else(|| hbb_common::anyhow::anyhow!("Config file {} not found", CONFIG_FILE_NAME))?;
+
+    log::debug!("Found config file at: {:?}", config_path);
+
+    let content = std::fs::read_to_string(&config_path).map_err(|e| {
+        log::warn!("Failed to read {}: {}", config_path.display(), e);
+        hbb_common::anyhow::anyhow!("Failed to read {}: {}", config_path.display(), e)
+    })?;
+
+    log::debug!("Config file content: {}", content);
+
     let server: CustomServer = serde_json::from_str(&content).map_err(|e| {
+        log::warn!("Failed to parse {}: {}", config_path.display(), e);
         hbb_common::anyhow::anyhow!("Failed to parse {}: {}", config_path.display(), e)
     })?;
-    
+
     // At least host should be non-empty to be valid
     if server.host.is_empty() {
+        log::warn!("Host is empty in config file: {:?}", config_path);
         bail!("Host is empty in config file: {:?}", config_path);
     }
-    
+
     log::info!(
         "Loaded custom server config from {:?}: host={}, key={}, api={}, relay={}",
         config_path,
         server.host,
-        if server.key.is_empty() { "(empty)" } else { "(set)" },
-        if server.api.is_empty() { "(empty)" } else { &server.api },
-        if server.relay.is_empty() { "(empty)" } else { &server.relay }
+        if server.key.is_empty() {
+            "(empty)"
+        } else {
+            "(set)"
+        },
+        if server.api.is_empty() {
+            "(empty)"
+        } else {
+            &server.api
+        },
+        if server.relay.is_empty() {
+            "(empty)"
+        } else {
+            &server.relay
+        }
     );
-    
+
     Ok(server)
 }
 
