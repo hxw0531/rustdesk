@@ -2,12 +2,19 @@ name: Flutter Tag Build
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+-[0-9]+'
+    inputs:
+      platform:
+        description: "Build platform"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - windows
+          - macos
+          - linux
+          - android
+          - ios
 
 jobs:
   run-flutter-tag-build:
@@ -16,3 +23,4 @@ jobs:
     with:
       upload-artifact: true
       upload-tag: ${{ github.ref_name }}
+      platform: ${{ inputs.platform }}
