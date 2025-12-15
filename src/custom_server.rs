@@ -108,12 +108,14 @@ fn decrypt_config(data: &[u8]) -> ResultType<CustomServer> {
 /// Generate encrypted config file content (base64 encoded for easy handling)
 pub fn generate_encrypted_config(server: &CustomServer) -> ResultType<String> {
     let encrypted = encrypt_config(server)?;
-    Ok(hbb_common::base64::encode(&encrypted, hbb_common::base64::Variant::Original))
+    #[allow(deprecated)]
+    Ok(hbb_common::base64::encode(&encrypted))
 }
 
 /// Parse encrypted config from base64 string
 fn parse_encrypted_config(content: &str) -> ResultType<CustomServer> {
-    let data = hbb_common::base64::decode(content.trim().as_bytes(), hbb_common::base64::Variant::Original)
+    #[allow(deprecated)]
+    let data = hbb_common::base64::decode(content.trim())
         .map_err(|_| hbb_common::anyhow::anyhow!("Invalid base64 encoding"))?;
     decrypt_config(&data)
 }
