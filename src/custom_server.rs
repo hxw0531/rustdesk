@@ -83,27 +83,29 @@ pub fn get_builtin_server_config() -> Option<CustomServer> {
 //   CUSTOM_SERVER_ENCRYPTION_KEY="YourCustom32ByteKeyHere12345678"
 // Must be exactly 32 bytes (characters)
 // ============================================================================
-const ENCRYPTION_SEED: &[u8; 32] = match option_env!("CUSTOM_SERVER_ENCRYPTION_KEY") {
-    Some(key) => {
-        // At compile time, convert the env var to a fixed-size array
-        // This will fail at compile time if the key is not exactly 32 bytes
-        const fn to_array(s: &str) -> [u8; 32] {
-            let bytes = s.as_bytes();
-            assert!(
-                bytes.len() == 32,
-                "CUSTOM_SERVER_ENCRYPTION_KEY must be exactly 32 bytes"
-            );
-            let mut arr = [0u8; 32];
-            let mut i = 0;
-            while i < 32 {
-                arr[i] = bytes[i];
-                i += 1;
-            }
-            arr
+const ENCRYPTION_SEED: &[u8; 32] = {
+    const fn to_array(s: &str) -> [u8; 32] {
+        let bytes = s.as_bytes();
+        assert!(
+            bytes.len() == 32,
+            "CUSTOM_SERVER_ENCRYPTION_KEY must be exactly 32 bytes"
+        );
+        let mut arr = [0u8; 32];
+        let mut i = 0;
+        while i < 32 {
+            arr[i] = bytes[i];
+            i += 1;
         }
-        &to_array(key)
+        arr
     }
-    None => b"RustDesk_CustomServer_Config_Key", // Default key
+    
+    // Use custom key from environment variable, or default key
+    // This will fail at compile time if the key is not exactly 32 bytes
+    const KEY: [u8; 32] = match option_env!("CUSTOM_SERVER_ENCRYPTION_KEY") {
+        Some(key) => to_array(key),
+        None => *b"RustDesk_CustomServer_Config_Key",
+    };
+    &KEY
 };
 
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
