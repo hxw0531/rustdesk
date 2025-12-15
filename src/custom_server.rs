@@ -40,6 +40,37 @@ fn get_custom_server_from_config_string(s: &str) -> ResultType<CustomServer> {
     }
 }
 
+/// Find config file path, checking multiple locations:
+/// 1. Current exe directory (for installed/extracted version)
+/// 2. Original portable exe directory (via RUSTDESK_APPNAME env var)
+fn find_config_file_path() -> Option<PathBuf> {
+    // First, check current exe directory
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let config_path = exe_dir.join(CONFIG_FILE_NAME);
+            log::debug!("Checking config at current exe dir: {:?}", config_path);
+            if config_path.exists() {
+                return Some(config_path);
+            }
+        }
+    }
+
+    // Second, check original portable exe directory (for self-extracting exe)
+    // RUSTDESK_APPNAME env var is set by the portable launcher
+    if let Ok(portable_exe) = std::env::var("RUSTDESK_APPNAME") {
+        let portable_path = PathBuf::from(&portable_exe);
+        if let Some(portable_dir) = portable_path.parent() {
+            let config_path = portable_dir.join(CONFIG_FILE_NAME);
+            log::debug!("Checking config at portable exe dir: {:?}", config_path);
+            if config_path.exists() {
+                return Some(config_path);
+            }
+        }
+    }
+
+    None
+}
+
 /// Get custom server config from a JSON file in the same directory as the executable.
 /// The config file should be named "custom_server.json" with format:
 /// {"host": "", "key": "", "api": "", "relay": ""}
