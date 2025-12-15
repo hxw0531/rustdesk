@@ -117,16 +117,9 @@ fn start_auto_update_check_(rx_msg: Receiver<UpdateMsg>) {
     }
 }
 
-fn check_update(manually: bool) -> ResultType<()> {
-    #[cfg(target_os = "windows")]
-    let is_msi = crate::platform::is_msi_installed()?;
-    if !(manually || config::Config::get_bool_option(config::keys::OPTION_ALLOW_AUTO_UPDATE)) {
-        return Ok(());
-    }
-    if !do_check_software_update().is_ok() {
-        // ignore
-        return Ok(());
-    }
+fn check_update(_manually: bool) -> ResultType<()> {
+    // 完全禁用更新检查（包括自动和手动）
+    return Ok(());
 
     let update_url = crate::common::SOFTWARE_UPDATE_URL.lock().unwrap().clone();
     if update_url.is_empty() {

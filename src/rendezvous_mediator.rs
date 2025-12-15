@@ -560,18 +560,16 @@ impl RendezvousMediator {
             return Ok(());
         }
         let peer_addr_v6 = hbb_common::AddrMangle::decode(&ph.socket_addr_v6);
-        let relay = use_ws() || Config::is_proxy() || ph.force_relay;
+        // Only use relay when controller explicitly requests force_relay
+        // Ignore NAT type, WebSocket, proxy conditions - always try direct first
+        let relay = ph.force_relay;
         let mut socket_addr_v6 = Default::default();
         if peer_addr_v6.port() > 0 && !relay {
             socket_addr_v6 = start_ipv6(peer_addr_v6, peer_addr, server.clone()).await;
         }
         let relay_server = self.get_relay_server(ph.relay_server);
-        // for ensure, websocket go relay directly
-        if ph.nat_type.enum_value() == Ok(NatType::SYMMETRIC)
-            || Config::get_nat_type() == NatType::SYMMETRIC as i32
-            || relay
-            || (config::is_disable_tcp_listen() && ph.udp_port <= 0)
-        {
+        // Only go relay directly when controller sets force_relay
+        if relay {
             let uuid = Uuid::new_v4().to_string();
             return self
                 .create_relay(

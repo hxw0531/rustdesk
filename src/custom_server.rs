@@ -5,6 +5,9 @@ use hbb_common::{
     ResultType,
 };
 use serde_derive::{Deserialize, Serialize};
+use std::path::PathBuf;
+
+const CONFIG_FILE_NAME: &str = "custom_server.json";
 
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
 pub struct CustomServer {
@@ -36,7 +39,38 @@ fn get_custom_server_from_config_string(s: &str) -> ResultType<CustomServer> {
     }
 }
 
+/// Get custom server config from a JSON file in the same directory as the executable.
+/// The config file should be named "custom_server.json" with format:
+/// {"host": "", "key": "", "api": "", "relay": ""}
+pub fn get_custom_server_from_config_file() -> ResultType<CustomServer> {
+    let exe_path = std::env::current_exe()?;
+    let config_path: PathBuf = exe_path
+        .parent()
+        .ok_or_else(|| hbb_common::anyhow::anyhow!("Failed to get exe directory"))?
+        .join(CONFIG_FILE_NAME);
+    
+    if !config_path.exists() {
+        bail!("Config file not found: {:?}", config_path);
+    }
+    
+    let content = std::fs::read_to_string(&config_path)?;
+    let server: CustomServer = serde_json::from_str(&content)?;
+    
+    // At least host should be non-empty to be valid
+    if server.host.is_empty() {
+        bail!("Host is empty in config file");
+    }
+    
+    Ok(server)
+}
+
 pub fn get_custom_server_from_string(s: &str) -> ResultType<CustomServer> {
+    // First try to read from config file
+    if let Ok(server) = get_custom_server_from_config_file() {
+        return Ok(server);
+    }
+    
+    // Fall back to parsing from exe name
     let s = if s.to_lowercase().ends_with(".exe.exe") {
         &s[0..s.len() - 8]
     } else if s.to_lowercase().ends_with(".exe") {
@@ -110,6 +144,24 @@ pub fn get_custom_server_from_string(s: &str) -> ResultType<CustomServer> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_config_file_parsing() {
+        let json = r#"{"host": "server.example.net", "key": "testkey", "api": "https://api.example.net", "relay": "relay.example.net"}"#;
+        let server: CustomServer = serde_json::from_str(json).unwrap();
+        assert_eq!(server.host, "server.example.net");
+        assert_eq!(server.key, "testkey");
+        assert_eq!(server.api, "https://api.example.net");
+        assert_eq!(server.relay, "relay.example.net");
+
+        // Test with empty optional fields
+        let json_minimal = r#"{"host": "server.example.net"}"#;
+        let server_minimal: CustomServer = serde_json::from_str(json_minimal).unwrap();
+        assert_eq!(server_minimal.host, "server.example.net");
+        assert_eq!(server_minimal.key, "");
+        assert_eq!(server_minimal.api, "");
+        assert_eq!(server_minimal.relay, "");
+    }
 
     #[test]
     fn test_filename_license_string() {

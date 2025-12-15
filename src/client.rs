@@ -415,11 +415,8 @@ impl Client {
         let mut is_local = false;
         let mut feedback = 0;
         use hbb_common::protobuf::Enum;
-        let nat_type = if interface.is_force_relay() {
-            NatType::SYMMETRIC
-        } else {
-            NatType::from_i32(my_nat_type).unwrap_or(NatType::UNKNOWN_NAT)
-        };
+        // Always report real NAT type to try direct connection first
+        let nat_type = NatType::from_i32(my_nat_type).unwrap_or(NatType::UNKNOWN_NAT);
 
         if !key.is_empty() && !token.is_empty() {
             // mainly for the security of token
@@ -462,7 +459,7 @@ impl Client {
             conn_type: conn_type.into(),
             version: crate::VERSION.to_owned(),
             udp_port: udp_nat_port as _,
-            force_relay: interface.is_force_relay(),
+            force_relay: interface.is_force_relay(), // Only skip direct when user explicitly sets force relay
             socket_addr_v6: ipv6.1.unwrap_or_default(),
             ..Default::default()
         });
@@ -709,8 +706,15 @@ impl Client {
         };
 
         let mut direct = !conn.is_err();
+        // If user explicitly set force_relay, skip direct connection attempt
+        // Otherwise, only fallback to relay when direct connection fails
         if interface.is_force_relay() || conn.is_err() {
             if !relay_server.is_empty() {
+                if interface.is_force_relay() {
+                    log::info!("Force relay enabled, using relay server directly");
+                } else {
+                    log::info!("Direct connection failed, falling back to relay server");
+                }
                 conn = Self::request_relay(
                     peer_id,
                     relay_server.to_owned(),
