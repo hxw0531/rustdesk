@@ -56,7 +56,14 @@ jobs:
         with:
           vcpkgDirectory: /opt/artifacts/vcpkg
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache
+        with:
+          path: /opt/artifacts/vcpkg/installed
+          key: vcpkg-installed-x64-linux-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache.outputs.cache-hit != 'true'
         run: $VCPKG_ROOT/vcpkg install --x-install-root="$VCPKG_ROOT/installed"
         shell: bash
       - name: Install Rust toolchain
@@ -105,7 +112,14 @@ jobs:
         with:
           vcpkgDirectory: /opt/artifacts/vcpkg
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache
+        with:
+          path: /opt/artifacts/vcpkg/installed
+          key: vcpkg-installed-arm64-linux-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache.outputs.cache-hit != 'true'
         run: $VCPKG_ROOT/vcpkg install --x-install-root="$VCPKG_ROOT/installed"
         shell: bash
       - name: Install Rust toolchain
@@ -151,7 +165,14 @@ jobs:
         with:
           vcpkgDirectory: C:\vcpkg
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-installed-x64-windows-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache.outputs.cache-hit != 'true'
         run: $VCPKG_ROOT/vcpkg install --x-install-root="$VCPKG_ROOT/installed"
         shell: bash
       - name: Install Rust toolchain
@@ -194,7 +215,14 @@ jobs:
         with:
           vcpkgDirectory: C:\vcpkg
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-installed-x86-windows-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache.outputs.cache-hit != 'true'
         run: $VCPKG_ROOT/vcpkg install --x-install-root="$VCPKG_ROOT/installed"
         shell: bash
       - name: Install Rust toolchain
@@ -239,7 +267,14 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-installed-x64-osx-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache.outputs.cache-hit != 'true'
         run: $VCPKG_ROOT/vcpkg install --x-install-root="$VCPKG_ROOT/installed"
         shell: bash
       - name: Install Rust toolchain

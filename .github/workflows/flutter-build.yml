@@ -205,7 +205,15 @@ jobs:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
           doNotCache: false
 
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-installed-${{ matrix.job.vcpkg-triplet }}-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
+
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache.outputs.cache-hit != 'true'
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
         run: |
@@ -405,7 +413,15 @@ jobs:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
           doNotCache: false
 
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache-sciter
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-installed-${{ matrix.job.vcpkg-triplet }}-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
+
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache-sciter.outputs.cache-hit != 'true'
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
         run: |
@@ -555,7 +571,15 @@ jobs:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
           doNotCache: false
 
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache-ios
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-installed-${{ matrix.job.vcpkg-triplet }}-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
+
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache-ios.outputs.cache-hit != 'true'
         run: |
           if ! $VCPKG_ROOT/vcpkg \
             install \
@@ -766,7 +790,15 @@ jobs:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
           doNotCache: false
 
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache-macos
+        with:
+          path: ${{ env.VCPKG_ROOT }}/installed
+          key: vcpkg-installed-${{ matrix.job.vcpkg-triplet }}-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
+
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache-macos.outputs.cache-hit != 'true'
         run: |
           if ! $VCPKG_ROOT/vcpkg \
             install \
@@ -1014,7 +1046,15 @@ jobs:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
           doNotCache: false
 
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache-android
+        with:
+          path: /opt/artifacts/vcpkg/installed
+          key: vcpkg-installed-${{ matrix.job.vcpkg-triplet }}-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
+
       - name: Install vcpkg dependencies
+        if: steps.vcpkg-installed-cache-android.outputs.cache-hit != 'true'
         run: |
           case ${{ matrix.job.target }} in
             aarch64-linux-android)
@@ -1477,8 +1517,16 @@ jobs:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
           doNotCache: false
 
-      - name: Install vcpkg dependencies
+      - name: Cache vcpkg installed packages
         if: matrix.job.arch == 'x86_64' || env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/cache@v4
+        id: vcpkg-installed-cache-linux
+        with:
+          path: /opt/artifacts/vcpkg/installed
+          key: vcpkg-installed-${{ matrix.job.vcpkg-triplet }}-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Install vcpkg dependencies
+        if: (matrix.job.arch == 'x86_64' || env.UPLOAD_ARTIFACT == 'true') && steps.vcpkg-installed-cache-linux.outputs.cache-hit != 'true'
         run: |
           sudo apt install -y libva-dev && apt show libva-dev
           if ! $VCPKG_ROOT/vcpkg \
