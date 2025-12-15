@@ -701,6 +701,13 @@ impl RendezvousMediator {
     }
 
     fn get_relay_server(&self, provided_by_rendezvous_server: String) -> String {
+        // First check custom_server.json / exe name config
+        #[cfg(windows)]
+        if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
+            if !lic.relay.is_empty() {
+                return lic.relay;
+            }
+        }
         let mut relay_server = Config::get_option("relay-server");
         if relay_server.is_empty() {
             relay_server = provided_by_rendezvous_server;

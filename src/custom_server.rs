@@ -1,6 +1,7 @@
 use hbb_common::{
     bail,
     base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _},
+    log,
     sodiumoxide::crypto::sign,
     ResultType,
 };
@@ -54,12 +55,23 @@ pub fn get_custom_server_from_config_file() -> ResultType<CustomServer> {
     }
     
     let content = std::fs::read_to_string(&config_path)?;
-    let server: CustomServer = serde_json::from_str(&content)?;
+    let server: CustomServer = serde_json::from_str(&content).map_err(|e| {
+        hbb_common::anyhow::anyhow!("Failed to parse {}: {}", config_path.display(), e)
+    })?;
     
     // At least host should be non-empty to be valid
     if server.host.is_empty() {
-        bail!("Host is empty in config file");
+        bail!("Host is empty in config file: {:?}", config_path);
     }
+    
+    log::info!(
+        "Loaded custom server config from {:?}: host={}, key={}, api={}, relay={}",
+        config_path,
+        server.host,
+        if server.key.is_empty() { "(empty)" } else { "(set)" },
+        if server.api.is_empty() { "(empty)" } else { &server.api },
+        if server.relay.is_empty() { "(empty)" } else { &server.relay }
+    );
     
     Ok(server)
 }

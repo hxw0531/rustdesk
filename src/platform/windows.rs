@@ -1461,6 +1461,7 @@ if exist \"{tmp_path}\\{app_name} Tray.lnk\" del /f /q \"{tmp_path}\\{app_name} 
         Config::set_option("key".into(), lic.key);
         Config::set_option("custom-rendezvous-server".into(), lic.host);
         Config::set_option("api-server".into(), lic.api);
+        Config::set_option("relay-server".into(), lic.relay);
     }
 
     let tray_shortcuts = if config::is_outgoing_only() {
@@ -2997,7 +2998,8 @@ fn get_license() -> Option<CustomServer> {
         lic.host = get_reg("Host");
         lic.api = get_reg("Api");
     }
-    if lic.key.is_empty() || lic.host.is_empty() {
+    // Only require host to be non-empty, key can be optional for custom_server.json
+    if lic.host.is_empty() {
         return None;
     }
     Some(lic)
