@@ -59,6 +59,8 @@ fn write_meta(dir: &Path, ts: u64) {
     }
 }
 
+const CUSTOM_SERVER_CONFIG: &str = "custom_server.json";
+
 fn setup(
     reader: BinaryReader,
     dir: Option<PathBuf>,
@@ -93,9 +95,28 @@ fn setup(
     write_meta(&dir, ts);
     #[cfg(windows)]
     win::copy_runtime_broker(&dir);
+    #[cfg(windows)]
+    copy_custom_server_config(&dir);
     #[cfg(linux)]
     reader.configure_permission(&dir);
     Some(dir.join(&reader.exe))
+}
+
+/// Copy custom_server.json from the portable exe directory to the extracted directory
+#[cfg(windows)]
+fn copy_custom_server_config(target_dir: &Path) {
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let src = exe_dir.join(CUSTOM_SERVER_CONFIG);
+            if src.exists() {
+                let dst = target_dir.join(CUSTOM_SERVER_CONFIG);
+                match std::fs::copy(&src, &dst) {
+                    Ok(_) => println!("Copied {} to {}", src.display(), dst.display()),
+                    Err(e) => eprintln!("Failed to copy {}: {}", CUSTOM_SERVER_CONFIG, e),
+                }
+            }
+        }
+    }
 }
 
 fn use_null_stdio() -> bool {
