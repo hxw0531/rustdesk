@@ -91,6 +91,10 @@ env:
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}"
+  # Custom server config encryption key (must be exactly 32 characters)
+  # Set this secret in GitHub repository settings to use a custom encryption key
+  # If not set, the default key will be used
+  CUSTOM_SERVER_ENCRYPTION_KEY: "${{ secrets.CUSTOM_SERVER_ENCRYPTION_KEY }}"
 
 jobs:
   generate-bridge:
@@ -211,6 +215,8 @@ jobs:
         shell: bash
 
       - name: Build rustdesk
+        env:
+          CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
         run: |
           # Windows: build RustDesk
           python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
@@ -407,6 +413,8 @@ jobs:
       - name: Build rustdesk
         id: build
         shell: bash
+        env:
+          CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
         run: |
           python3 res/inline-sciter.py
           # Patch sciter x86
@@ -565,6 +573,8 @@ jobs:
           path: ./
 
       - name: Build rustdesk lib
+        env:
+          CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
         run: |
           rustup target add ${{ matrix.job.target }}
           cargo build --features flutter,hwcodec --release --target aarch64-apple-ios --lib
@@ -760,6 +770,8 @@ jobs:
           rustc -V
 
       - name: Build rustdesk
+        env:
+          CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
         run: |
           if [ "${{ matrix.job.target }}" = "aarch64-apple-darwin" ]; then
             MIN_MACOS_VERSION="12.3"
@@ -1024,6 +1036,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
         run: |
           rustup target add ${{ matrix.job.target }}
           cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
@@ -1475,6 +1488,8 @@ jobs:
             --volume "${PWD}:/workspace"
             --volume "/opt/artifacts:/opt/artifacts"
           shell: /bin/bash
+          env: |
+            CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
           install: |
             apt-get update -y
             echo -e "installing deps"

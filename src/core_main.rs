@@ -628,6 +628,23 @@ pub fn core_main() -> Option<Vec<String>> {
                 crate::platform::gtk_sudo::exec();
             }
             return None;
+        } else if args[0] == "--encrypt-config" {
+            // Encrypt custom_server.json to custom_server.enc
+            // Usage: rustdesk --encrypt-config <input.json> [output.enc]
+            if args.len() >= 2 {
+                let output = if args.len() >= 3 {
+                    Some(args[2].as_str())
+                } else {
+                    None
+                };
+                match crate::custom_server::encrypt_config_file(&args[1], output) {
+                    Ok(_) => println!("Config encrypted successfully"),
+                    Err(e) => eprintln!("Failed to encrypt config: {}", e),
+                }
+            } else {
+                eprintln!("Usage: rustdesk --encrypt-config <input.json> [output.enc]");
+            }
+            return None;
         } else {
             #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
             #[cfg(not(any(target_os = "android", target_os = "ios")))]

@@ -60,6 +60,7 @@ fn write_meta(dir: &Path, ts: u64) {
 }
 
 const CUSTOM_SERVER_CONFIG: &str = "custom_server.json";
+const CUSTOM_SERVER_CONFIG_ENC: &str = "custom_server.enc";
 
 fn setup(
     reader: BinaryReader,
@@ -102,16 +103,28 @@ fn setup(
     Some(dir.join(&reader.exe))
 }
 
-/// Copy custom_server.json from the portable exe directory to the extracted directory
+/// Copy custom_server config files from the portable exe directory to the extracted directory
+/// Supports both encrypted (.enc) and plain JSON (.json) formats
 #[cfg(windows)]
 fn copy_custom_server_config(target_dir: &Path) {
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let src = exe_dir.join(CUSTOM_SERVER_CONFIG);
-            if src.exists() {
+            // Copy encrypted config if exists (higher priority)
+            let src_enc = exe_dir.join(CUSTOM_SERVER_CONFIG_ENC);
+            if src_enc.exists() {
+                let dst = target_dir.join(CUSTOM_SERVER_CONFIG_ENC);
+                match std::fs::copy(&src_enc, &dst) {
+                    Ok(_) => println!("Copied {} to {}", src_enc.display(), dst.display()),
+                    Err(e) => eprintln!("Failed to copy {}: {}", CUSTOM_SERVER_CONFIG_ENC, e),
+                }
+            }
+            
+            // Also copy plain JSON config if exists
+            let src_json = exe_dir.join(CUSTOM_SERVER_CONFIG);
+            if src_json.exists() {
                 let dst = target_dir.join(CUSTOM_SERVER_CONFIG);
-                match std::fs::copy(&src, &dst) {
-                    Ok(_) => println!("Copied {} to {}", src.display(), dst.display()),
+                match std::fs::copy(&src_json, &dst) {
+                    Ok(_) => println!("Copied {} to {}", src_json.display(), dst.display()),
                     Err(e) => eprintln!("Failed to copy {}: {}", CUSTOM_SERVER_CONFIG, e),
                 }
             }
