@@ -31,17 +31,68 @@ fn set_hide_server_settings() {
 const CONFIG_FILE_NAME: &str = "custom_server.json";
 const ENCRYPTED_CONFIG_FILE_NAME: &str = "custom_server.enc";
 
-// Encryption key for custom server config
+// ============================================================================
+// Compile-time built-in server configuration
+// Set these environment variables at compile time to embed server config:
+//   BUILTIN_SERVER_HOST="your-server.example.com"
+//   BUILTIN_SERVER_KEY="your-public-key"
+//   BUILTIN_SERVER_API="https://api.example.com"
+//   BUILTIN_SERVER_RELAY="relay.example.com"
+// ============================================================================
+const BUILTIN_HOST: Option<&str> = option_env!("BUILTIN_SERVER_HOST");
+const BUILTIN_KEY: Option<&str> = option_env!("BUILTIN_SERVER_KEY");
+const BUILTIN_API: Option<&str> = option_env!("BUILTIN_SERVER_API");
+const BUILTIN_RELAY: Option<&str> = option_env!("BUILTIN_SERVER_RELAY");
+
+/// Check if built-in server config is available (at least host is set)
+pub fn has_builtin_server_config() -> bool {
+    BUILTIN_HOST.map(|s| !s.is_empty()).unwrap_or(false)
+}
+
+/// Get built-in server config if available
+pub fn get_builtin_server_config() -> Option<CustomServer> {
+    let host = BUILTIN_HOST.unwrap_or("");
+    if host.is_empty() {
+        return None;
+    }
+    
+    let server = CustomServer {
+        host: host.to_string(),
+        key: BUILTIN_KEY.unwrap_or("").to_string(),
+        api: BUILTIN_API.unwrap_or("").to_string(),
+        relay: BUILTIN_RELAY.unwrap_or("").to_string(),
+    };
+    
+    log::info!(
+        "Using built-in server config: host={}, key={}, api={}, relay={}",
+        server.host,
+        if server.key.is_empty() { "(empty)" } else { "(set)" },
+        if server.api.is_empty() { "(empty)" } else { &server.api },
+        if server.relay.is_empty() { "(empty)" } else { &server.relay }
+    );
+    
+    // Hide server settings in UI when using built-in config
+    set_hide_server_settings();
+    
+    Some(server)
+}
+
+// ============================================================================
+// Encryption key for custom server config file
 // Can be customized at compile time via environment variable:
 //   CUSTOM_SERVER_ENCRYPTION_KEY="YourCustom32ByteKeyHere12345678"
 // Must be exactly 32 bytes (characters)
+// ============================================================================
 const ENCRYPTION_SEED: &[u8; 32] = match option_env!("CUSTOM_SERVER_ENCRYPTION_KEY") {
     Some(key) => {
         // At compile time, convert the env var to a fixed-size array
         // This will fail at compile time if the key is not exactly 32 bytes
         const fn to_array(s: &str) -> [u8; 32] {
             let bytes = s.as_bytes();
-            assert!(bytes.len() == 32, "CUSTOM_SERVER_ENCRYPTION_KEY must be exactly 32 bytes");
+            assert!(
+                bytes.len() == 32,
+                "CUSTOM_SERVER_ENCRYPTION_KEY must be exactly 32 bytes"
+            );
             let mut arr = [0u8; 32];
             let mut i = 0;
             while i < 32 {
@@ -232,12 +283,17 @@ pub fn get_custom_server_from_config_file() -> ResultType<CustomServer> {
 }
 
 pub fn get_custom_server_from_string(s: &str) -> ResultType<CustomServer> {
-    // First try to read from config file
+    // Priority 1: Built-in compile-time config (highest priority)
+    if let Some(server) = get_builtin_server_config() {
+        return Ok(server);
+    }
+
+    // Priority 2: Config file (custom_server.enc or custom_server.json)
     if let Ok(server) = get_custom_server_from_config_file() {
         return Ok(server);
     }
-    
-    // Fall back to parsing from exe name
+
+    // Priority 3: Parse from exe name (lowest priority)
     let s = if s.to_lowercase().ends_with(".exe.exe") {
         &s[0..s.len() - 8]
     } else if s.to_lowercase().ends_with(".exe") {

@@ -95,6 +95,17 @@ env:
   # Set this secret in GitHub repository settings to use a custom encryption key
   # If not set, the default key will be used
   CUSTOM_SERVER_ENCRYPTION_KEY: "${{ secrets.CUSTOM_SERVER_ENCRYPTION_KEY }}"
+  # Built-in server configuration (compiled into the binary)
+  # These have the highest priority and will override config files
+  # Set these secrets in GitHub repository settings:
+  #   BUILTIN_SERVER_HOST - ID server address (required for built-in config)
+  #   BUILTIN_SERVER_KEY  - Public key
+  #   BUILTIN_SERVER_API  - API server URL
+  #   BUILTIN_SERVER_RELAY - Relay server address
+  BUILTIN_SERVER_HOST: "${{ secrets.BUILTIN_SERVER_HOST }}"
+  BUILTIN_SERVER_KEY: "${{ secrets.BUILTIN_SERVER_KEY }}"
+  BUILTIN_SERVER_API: "${{ secrets.BUILTIN_SERVER_API }}"
+  BUILTIN_SERVER_RELAY: "${{ secrets.BUILTIN_SERVER_RELAY }}"
 
 jobs:
   generate-bridge:
@@ -217,6 +228,10 @@ jobs:
       - name: Build rustdesk
         env:
           CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
+          BUILTIN_SERVER_HOST: ${{ env.BUILTIN_SERVER_HOST }}
+          BUILTIN_SERVER_KEY: ${{ env.BUILTIN_SERVER_KEY }}
+          BUILTIN_SERVER_API: ${{ env.BUILTIN_SERVER_API }}
+          BUILTIN_SERVER_RELAY: ${{ env.BUILTIN_SERVER_RELAY }}
         run: |
           # Windows: build RustDesk
           python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
@@ -415,6 +430,10 @@ jobs:
         shell: bash
         env:
           CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
+          BUILTIN_SERVER_HOST: ${{ env.BUILTIN_SERVER_HOST }}
+          BUILTIN_SERVER_KEY: ${{ env.BUILTIN_SERVER_KEY }}
+          BUILTIN_SERVER_API: ${{ env.BUILTIN_SERVER_API }}
+          BUILTIN_SERVER_RELAY: ${{ env.BUILTIN_SERVER_RELAY }}
         run: |
           python3 res/inline-sciter.py
           # Patch sciter x86
@@ -575,6 +594,10 @@ jobs:
       - name: Build rustdesk lib
         env:
           CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
+          BUILTIN_SERVER_HOST: ${{ env.BUILTIN_SERVER_HOST }}
+          BUILTIN_SERVER_KEY: ${{ env.BUILTIN_SERVER_KEY }}
+          BUILTIN_SERVER_API: ${{ env.BUILTIN_SERVER_API }}
+          BUILTIN_SERVER_RELAY: ${{ env.BUILTIN_SERVER_RELAY }}
         run: |
           rustup target add ${{ matrix.job.target }}
           cargo build --features flutter,hwcodec --release --target aarch64-apple-ios --lib
@@ -772,6 +795,10 @@ jobs:
       - name: Build rustdesk
         env:
           CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
+          BUILTIN_SERVER_HOST: ${{ env.BUILTIN_SERVER_HOST }}
+          BUILTIN_SERVER_KEY: ${{ env.BUILTIN_SERVER_KEY }}
+          BUILTIN_SERVER_API: ${{ env.BUILTIN_SERVER_API }}
+          BUILTIN_SERVER_RELAY: ${{ env.BUILTIN_SERVER_RELAY }}
         run: |
           if [ "${{ matrix.job.target }}" = "aarch64-apple-darwin" ]; then
             MIN_MACOS_VERSION="12.3"
@@ -1037,6 +1064,10 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
           CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
+          BUILTIN_SERVER_HOST: ${{ env.BUILTIN_SERVER_HOST }}
+          BUILTIN_SERVER_KEY: ${{ env.BUILTIN_SERVER_KEY }}
+          BUILTIN_SERVER_API: ${{ env.BUILTIN_SERVER_API }}
+          BUILTIN_SERVER_RELAY: ${{ env.BUILTIN_SERVER_RELAY }}
         run: |
           rustup target add ${{ matrix.job.target }}
           cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
@@ -1490,6 +1521,10 @@ jobs:
           shell: /bin/bash
           env: |
             CUSTOM_SERVER_ENCRYPTION_KEY: ${{ env.CUSTOM_SERVER_ENCRYPTION_KEY }}
+            BUILTIN_SERVER_HOST: ${{ env.BUILTIN_SERVER_HOST }}
+            BUILTIN_SERVER_KEY: ${{ env.BUILTIN_SERVER_KEY }}
+            BUILTIN_SERVER_API: ${{ env.BUILTIN_SERVER_API }}
+            BUILTIN_SERVER_RELAY: ${{ env.BUILTIN_SERVER_RELAY }}
           install: |
             apt-get update -y
             echo -e "installing deps"
